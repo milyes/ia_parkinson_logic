@@ -1,0 +1,5 @@
+{
+  "name": "IA Parkinson Logic",
+  "description": "Dashboard for voice analysis and Parkinson's risk scoring",
+  "requestFramePermissions": ["microphone"]
+}
