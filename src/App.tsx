@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Activity, 
   Mic, 
@@ -9,7 +9,8 @@ import {
   LogOut, 
   Play, 
   Square,
-  CheckCircle2
+  CheckCircle2,
+  Pause
 } from 'lucide-react';
 import { 
   AreaChart,
@@ -32,16 +33,18 @@ const riskData = [
 ];
 
 const historyData = [
-  { id: 'AN-892', date: '12/04/2026', duration: '0:45', jitter: '1.2%', shimmer: '3.4%', risk: 'Élevé', status: 'completed' },
-  { id: 'AN-891', date: '05/04/2026', duration: '1:12', jitter: '0.9%', shimmer: '2.8%', risk: 'Modéré', status: 'completed' },
-  { id: 'AN-890', date: '29/03/2026', duration: '0:58', jitter: '0.7%', shimmer: '2.1%', risk: 'Faible', status: 'completed' },
-  { id: 'AN-889', date: '22/03/2026', duration: '1:05', jitter: '0.5%', shimmer: '1.9%', risk: 'Faible', status: 'completed' },
+  { id: 'AN-892', date: '12/04/2026', duration: '0:45', jitter: '1.2%', shimmer: '3.4%', risk: 'Élevé', status: 'completed', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+  { id: 'AN-891', date: '05/04/2026', duration: '1:12', jitter: '0.9%', shimmer: '2.8%', risk: 'Modéré', status: 'completed', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
+  { id: 'AN-890', date: '29/03/2026', duration: '0:58', jitter: '0.7%', shimmer: '2.1%', risk: 'Faible', status: 'completed', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+  { id: 'AN-889', date: '22/03/2026', duration: '1:05', jitter: '0.5%', shimmer: '1.9%', risk: 'Faible', status: 'completed', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
 ];
 
 export default function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [analysisState, setAnalysisState] = useState<'idle' | 'recording' | 'analyzing' | 'complete'>('idle');
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -52,6 +55,14 @@ export default function App() {
     }
     return () => clearInterval(interval);
   }, [isRecording]);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
 
   const handleRecordToggle = () => {
     if (isRecording) {
@@ -65,6 +76,22 @@ export default function App() {
       setIsRecording(true);
       setAnalysisState('recording');
       setRecordingTime(0);
+    }
+  };
+
+  const handlePlayAudio = (id: string, url: string) => {
+    if (playingAudioId === id) {
+      audioRef.current?.pause();
+      setPlayingAudioId(null);
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.play();
+      setPlayingAudioId(id);
+      audio.onended = () => setPlayingAudioId(null);
     }
   };
 
@@ -229,9 +256,27 @@ export default function App() {
                     <p className="text-[var(--color-primary)] animate-pulse">Extraction des biomarqueurs vocaux en cours...</p>
                   )}
                   {analysisState === 'complete' && (
-                    <div className="flex items-center justify-center gap-2 text-[var(--color-secondary)]">
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span>Analyse terminée avec succès</span>
+                    <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 mt-4">
+                      <div className="flex items-center justify-center gap-2 text-[var(--color-secondary)] mb-4">
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span className="text-sm font-medium">Analyse terminée</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <MiniKpiCard 
+                          title="Jitter" 
+                          value="1.3%" 
+                          trend="+0.1%" 
+                          trendUp={true} 
+                          color="var(--color-secondary)" 
+                        />
+                        <MiniKpiCard 
+                          title="Shimmer" 
+                          value="3.6%" 
+                          trend="+0.2%" 
+                          trendUp={true} 
+                          color="var(--color-secondary)" 
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -335,8 +380,15 @@ export default function App() {
                         </span>
                       </td>
                       <td className="p-4 text-right">
-                        <button className="p-2 hover:bg-[var(--color-border)] rounded-lg transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
-                          <Play className="w-4 h-4" />
+                        <button 
+                          onClick={() => handlePlayAudio(row.id, row.audioUrl)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            playingAudioId === row.id 
+                              ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)]' 
+                              : 'hover:bg-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+                          }`}
+                        >
+                          {playingAudioId === row.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                         </button>
                       </td>
                     </tr>
@@ -395,6 +447,24 @@ function KpiCard({ title, value, unit, trend, trendUp, icon, color }: any) {
           </span>
         )}
         <span className="text-xs text-[var(--color-text-muted)]">vs mois dernier</span>
+      </div>
+    </div>
+  );
+}
+
+function MiniKpiCard({ title, value, trend, trendUp, color }: any) {
+  return (
+    <div className="bg-[var(--color-background)] border border-[var(--color-border)] rounded-xl p-4 relative overflow-hidden text-left">
+      <div 
+        className="absolute top-0 right-0 w-16 h-16 rounded-full blur-2xl -mr-4 -mt-4 opacity-10"
+        style={{ backgroundColor: color }}
+      ></div>
+      <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-2 relative z-10">{title}</div>
+      <div className="font-mono text-xl text-[var(--color-text)] relative z-10">{value}</div>
+      <div className="mt-2 flex items-center gap-1 relative z-10">
+        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${trendUp ? 'bg-red-500/10 text-red-400' : 'bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]'}`}>
+          {trend}
+        </span>
       </div>
     </div>
   );
