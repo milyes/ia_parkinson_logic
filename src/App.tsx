@@ -19,7 +19,9 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer
+  ResponsiveContainer,
+  LineChart,
+  Line
 } from 'recharts';
 
 const riskData = [
@@ -32,7 +34,7 @@ const riskData = [
   { date: '12/04', score: 35 },
 ];
 
-const historyData = [
+const initialHistoryData = [
   { id: 'AN-892', date: '12/04/2026', duration: '0:45', jitter: '1.2%', shimmer: '3.4%', risk: 'Élevé', status: 'completed', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
   { id: 'AN-891', date: '05/04/2026', duration: '1:12', jitter: '0.9%', shimmer: '2.8%', risk: 'Modéré', status: 'completed', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
   { id: 'AN-890', date: '29/03/2026', duration: '0:58', jitter: '0.7%', shimmer: '2.1%', risk: 'Faible', status: 'completed', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
@@ -40,6 +42,7 @@ const historyData = [
 ];
 
 export default function App() {
+  const [history, setHistory] = useState(initialHistoryData);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [analysisState, setAnalysisState] = useState<'idle' | 'recording' | 'analyzing' | 'complete'>('idle');
@@ -64,13 +67,32 @@ export default function App() {
     };
   }, []);
 
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
   const handleRecordToggle = () => {
     if (isRecording) {
       setIsRecording(false);
       setAnalysisState('analyzing');
+      const durationStr = formatTime(recordingTime);
       setTimeout(() => {
         setAnalysisState('complete');
         setRecordingTime(0);
+        
+        const newAnalysis = {
+          id: `AN-${Math.floor(Math.random() * 100) + 900}`,
+          date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          duration: durationStr,
+          jitter: '1.3%',
+          shimmer: '3.6%',
+          risk: 'Élevé',
+          status: 'completed',
+          audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+        };
+        setHistory(prev => [newAnalysis, ...prev]);
       }, 3000);
     } else {
       setIsRecording(true);
@@ -95,19 +117,13 @@ export default function App() {
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
   return (
-    <div className="flex h-screen bg-[var(--color-background)] text-[var(--color-text)] overflow-hidden selection:bg-[var(--color-primary)] selection:text-white">
+    <div className="flex min-h-screen bg-[var(--color-background)] text-[var(--color-text)] selection:bg-[var(--color-primary)] selection:text-white">
       {/* Sidebar */}
       <aside className="w-64 border-r border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col">
         <div className="p-6 flex items-center gap-3 border-b border-[var(--color-border)]">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] flex items-center justify-center">
-            <BrainCircuit className="w-5 h-5 text-black" />
+            <BrainCircuit className="w-5 h-5 text-white" />
           </div>
           <span className="font-bold text-lg tracking-tight">IA Parkinson Logic</span>
         </div>
@@ -121,13 +137,13 @@ export default function App() {
 
         <div className="p-4 border-t border-[var(--color-border)] space-y-2">
           <NavItem icon={<Settings />} label="Paramètres" />
-          <NavItem icon={<LogOut />} label="Déconnexion" className="text-red-400 hover:text-red-300 hover:bg-red-400/10" />
+          <NavItem icon={<LogOut />} label="Déconnexion" className="text-red-600 hover:text-red-700 hover:bg-red-50" />
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <header className="h-20 border-b border-[var(--color-border)] flex items-center justify-between px-8 bg-[var(--color-background)]/80 backdrop-blur-md sticky top-0 z-10">
+      <main className="flex-1">
+        <header className="h-20 border-b border-[var(--color-border)] flex items-center justify-between px-8 bg-[var(--color-background)]">
           <div>
             <h1 className="text-2xl font-semibold">Vue d'ensemble du patient</h1>
             <p className="text-sm text-[var(--color-text-muted)] mt-1">ID Patient: #PT-8492 • Dr. Laurent</p>
@@ -196,8 +212,8 @@ export default function App() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold">Nouvelle Analyse</h2>
                 {analysisState === 'recording' && (
-                  <span className="flex items-center gap-2 text-xs font-mono text-red-400 bg-red-400/10 px-2 py-1 rounded-md">
-                    <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
+                  <span className="flex items-center gap-2 text-xs font-mono text-red-600 bg-red-100 px-2 py-1 rounded-md">
+                    <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
                     ENR. {formatTime(recordingTime)}
                   </span>
                 )}
@@ -221,7 +237,7 @@ export default function App() {
                         ? 'bg-red-500 hover:bg-red-600 shadow-red-500/20' 
                         : analysisState === 'analyzing'
                           ? 'bg-[var(--color-border)] cursor-not-allowed'
-                          : 'bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] hover:scale-105 shadow-[var(--color-primary)]/20 text-black'
+                          : 'bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] hover:scale-105 shadow-[var(--color-primary)]/20 text-white'
                       }`}
                   >
                     {isRecording ? (
@@ -267,14 +283,18 @@ export default function App() {
                           value="1.3%" 
                           trend="+0.1%" 
                           trendUp={true} 
-                          color="var(--color-secondary)" 
+                          bgColor="var(--color-secondary)"
+                          textColor="#fff"
+                          chartData={[{v: 0.8}, {v: 0.9}, {v: 1.1}, {v: 1.0}, {v: 1.2}, {v: 1.3}]}
                         />
                         <MiniKpiCard 
                           title="Shimmer" 
                           value="3.6%" 
                           trend="+0.2%" 
                           trendUp={true} 
-                          color="var(--color-secondary)" 
+                          bgColor="var(--color-primary)"
+                          textColor="#fff"
+                          chartData={[{v: 2.8}, {v: 3.0}, {v: 2.9}, {v: 3.2}, {v: 3.4}, {v: 3.6}]}
                         />
                       </div>
                     </div>
@@ -363,7 +383,7 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
-                  {historyData.map((row) => (
+                  {history.map((row) => (
                     <tr key={row.id} className="hover:bg-[var(--color-surface-hover)] transition-colors">
                       <td className="p-4 font-mono text-sm">{row.id}</td>
                       <td className="p-4 text-sm">{row.date}</td>
@@ -372,8 +392,8 @@ export default function App() {
                       <td className="p-4 font-mono text-sm">{row.shimmer}</td>
                       <td className="p-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                          ${row.risk === 'Élevé' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
-                            row.risk === 'Modéré' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 
+                          ${row.risk === 'Élevé' ? 'bg-red-100 text-red-700 border-red-200' : 
+                            row.risk === 'Modéré' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 
                             'bg-[var(--color-secondary)]/10 text-[var(--color-secondary)] border-[var(--color-secondary)]/20'}`}
                         >
                           {row.risk}
@@ -437,7 +457,7 @@ function KpiCard({ title, value, unit, trend, trendUp, icon, color }: any) {
       </div>
       <div className="mt-4 flex items-center gap-2 relative z-10">
         {trendUp !== null && (
-          <span className={`text-xs font-medium px-2 py-1 rounded-md ${trendUp ? 'bg-red-500/10 text-red-400' : 'bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]'}`}>
+          <span className={`text-xs font-medium px-2 py-1 rounded-md ${trendUp ? 'bg-red-100 text-red-700' : 'bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]'}`}>
             {trend}
           </span>
         )}
@@ -452,17 +472,48 @@ function KpiCard({ title, value, unit, trend, trendUp, icon, color }: any) {
   );
 }
 
-function MiniKpiCard({ title, value, trend, trendUp, color }: any) {
+function MiniKpiCard({ title, value, trend, trendUp, color, bgColor, textColor, chartData }: any) {
   return (
-    <div className="bg-[var(--color-background)] border border-[var(--color-border)] rounded-xl p-4 relative overflow-hidden text-left">
-      <div 
-        className="absolute top-0 right-0 w-16 h-16 rounded-full blur-2xl -mr-4 -mt-4 opacity-10"
-        style={{ backgroundColor: color }}
-      ></div>
-      <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-2 relative z-10">{title}</div>
-      <div className="font-mono text-xl text-[var(--color-text)] relative z-10">{value}</div>
+    <div 
+      className={`border border-[var(--color-border)] rounded-xl p-4 relative overflow-hidden text-left flex flex-col justify-between ${!bgColor ? 'bg-[var(--color-background)]' : ''}`}
+      style={bgColor ? { backgroundColor: bgColor, color: textColor } : {}}
+    >
+      {color && (
+        <div 
+          className="absolute top-0 right-0 w-16 h-16 rounded-full blur-2xl -mr-4 -mt-4 opacity-10"
+          style={{ backgroundColor: color }}
+        ></div>
+      )}
+      <div>
+        <div className={`text-xs font-medium uppercase tracking-wider mb-1 relative z-10 ${textColor ? 'opacity-80' : 'text-[var(--color-text-muted)]'}`}>{title}</div>
+        <div className={`font-mono text-xl relative z-10 ${textColor ? '' : 'text-[var(--color-text)]'}`}>{value}</div>
+      </div>
+      
+      {chartData && (
+        <div className="h-10 w-full mt-2 relative z-10">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData}>
+              <Line 
+                type="monotone" 
+                dataKey="v" 
+                stroke={textColor ? 'rgba(255,255,255,0.6)' : 'var(--color-primary)'} 
+                strokeWidth={2} 
+                dot={false} 
+                isAnimationActive={false} 
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
       <div className="mt-2 flex items-center gap-1 relative z-10">
-        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${trendUp ? 'bg-red-500/10 text-red-400' : 'bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]'}`}>
+        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+          textColor 
+            ? 'bg-white/20 text-white' 
+            : trendUp 
+              ? 'bg-red-100 text-red-700' 
+              : 'bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]'
+        }`}>
           {trend}
         </span>
       </div>
